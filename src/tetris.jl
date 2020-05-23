@@ -24,8 +24,6 @@ const I = [1;
            1]
 
 
-
-
 const J = [2 0 0;
            2 2 2]
 
@@ -67,7 +65,6 @@ function print_board(mode, board)
     run(`clear`)
     println(CBLACKBG, FILL_CHAR_H_T^(20+3))
     for row in eachrow(board[4:end,:])
-    # for row in eachrow(board)
         print(FILL_CHAR_V)
 
         for col in row[1:end-1]
@@ -83,7 +80,7 @@ end
 
 
 function pick_a_piece(pieces, last_pieces)
-    pieces[rand(1:length(pieces))]
+    return pieces[rand(1:length(pieces))]
 end
 
 
@@ -108,15 +105,14 @@ function parse_input(input)
     elseif 'd' == input
         return :right
     elseif ' ' == input
-        return :transpose
+        return :rotate
     end
 
     return :none
 end
 
 
-# FUNÇÃO EM C QUE FAZ A LEITURA SINCRONA DO QUE ESTÁ
-# SENDO DIGITADO
+# Keyboard pooling detector
 function monitorInput()
     # Put STDIN in 'raw mode'
     ccall(:jl_tty_set_mode, Int32, (Ptr{Cvoid}, Int32), stdin.handle, true) == 0 || throw("FATAL: Terminal unable to enter raw mode.")
@@ -132,11 +128,13 @@ function monitorInput()
     return inputBuffer
 end
 
+
 function clean_channel(data_channel)
     while isready(data_channel)
         take!(data_channel)
     end
 end
+
 
 function cpy_piece_to_board(board, tetromino)
     for i in 1:length(tetromino.type[:,1])
@@ -145,6 +143,14 @@ function cpy_piece_to_board(board, tetromino)
                 board[tetromino.y+i-1, tetromino.x+j-1] = tetromino.type[i, j]
             end
         end
+    end
+end
+
+
+function adjust_cordinates(board, tetromino)
+    println(tetromino.x + length(tetromino.type[1,:]))
+    if (tetromino.x + length(tetromino.type[1,:])) >= 10
+        tetromino.x = 11 - length(tetromino.type[1,:])
     end
 end
 
@@ -174,8 +180,14 @@ function move_piece!(board, tetromino, move_to)
         newx += 1
     elseif move_to == :down && tetromino.y < (25 - length(tetromino.type[:,1]))
         newy += 1
-    elseif move_to == :transpose
-        tetromino.type = tetromino.type'
+    elseif move_to == :rotate
+        if ndims(tetromino.type) == 1
+            tetromino.type = tetromino.type'
+        else
+            tetromino.type = rotr90(tetromino.type)
+        end
+        adjust_cordinates(board, tetromino)
+
         cpy_piece_to_board(board, tetromino)
         return false
     end
@@ -258,9 +270,9 @@ function loop(mode)
         end
 
         println("Score: $score")
-        println(i)
-        println(need_new_piece)
-        println(move_to)
+        # println(i)
+        # println(need_new_piece)
+        # println(move_to)
 
         if need_new_piece
             if !is_a_valid_game(board)
@@ -284,7 +296,7 @@ function loop(mode)
         move_to = :none
         clean_channel(data_channel)
         println(tetromino)
-        sleep(0.2) # FIXME
+        sleep(0.3) # FIXME
         print_board(mode, board)
 
     end
