@@ -239,6 +239,7 @@ function loop(mode)
 
     score = 0
     level = 0
+    record = 0
 
     while true
         if isready(data_channel)
