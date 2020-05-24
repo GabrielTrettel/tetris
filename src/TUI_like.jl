@@ -1,7 +1,17 @@
 include("Styles.jl")
 
-board_string = """
+logo = raw"""
+            _____ ___ _____ ___ ___ ___
+           |_   _| __|_   _| _ \_ _/ __|
+             | | _|  | | |   /| |\__ \
+___ ___  __ _|_|___| |_|_|_|_\___|___/ ___ ___ ___
+| __| _ \/ _ \|  \/  | |_   _| __|_   _| _ \_ _/ __|
+| _||   / (_) | |\/| |   | | | _|  | | |   /| |\__ \
+|_| |_|_\\___/|_|  |_|   |_| |___| |_| |_|_\___|___/
 
+"""
+
+board_string = """
     ______________________
     |%|     SCORE:  &
     |%|     LEVEL:  !
@@ -50,7 +60,7 @@ function print_board(mode, board, next_tetromino=[], score="None", level="None",
     run(`clear`)
     board_line_counter = 1
     next_tetromino_line_counter = 1
-    output_text = ""
+    output_text = logo
 
     for line in split(board_string, '\n')
         if '%' in line

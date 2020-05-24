@@ -133,7 +133,6 @@ end
 
 
 function adjust_cordinates(board, tetromino)
-    println(tetromino.x + length(tetromino.type[1,:]))
     if (tetromino.x + length(tetromino.type[1,:])) >= 10
         tetromino.x = 11 - length(tetromino.type[1,:])
     end
@@ -237,11 +236,11 @@ function loop(mode)
     data_channel = monitorInput()
 
     need_new_piece = true
-    i=0
-    score = 0
-    while true
-        i+=1
 
+    score = 0
+    level = 0
+
+    while true
         if isready(data_channel)
             key_event = lowercase(take!(data_channel))
 
@@ -267,15 +266,14 @@ function loop(mode)
             need_new_piece = move_piece!(board, tetromino, move_to)
         end
 
-
         if !need_new_piece
             need_new_piece = move_piece!(board, tetromino, :down)
         end
 
         move_to = :none
         clean_channel(data_channel)
-        sleep(0.2) # FIXME
-        print_board(mode, board[4:end,:], pieces[next_piece], score)
+        sleep(0.5 / (1 + (0.1*level))) # FIXME
+        print_board(mode, board[4:end,:], pieces[next_piece], score, level, record)
 
     end
 end
