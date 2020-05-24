@@ -79,8 +79,22 @@ end
 
 
 
-function pick_a_piece(pieces, last_pieces)
-    return pieces[rand(1:length(pieces))]
+function pick_a_piece(pieces, lastpiece, nextpiece)
+    # if nextpiece == nothing
+    #     lastpiece = 1 #rand(1:length(pieces))
+    #     nextpiece = 2 #lastpiece
+    #
+    #     return [pieces[lastpiece], lastpiece, nextpiece]
+    # end
+
+    lastpiece = nextpiece
+    nextpiece = rand(0:length(pieces))
+
+    while nextpiece == 0 || nextpiece == lastpiece
+        nextpiece = rand(0:length(pieces))
+    end
+
+    return [pieces[lastpiece], lastpiece, nextpiece]
 end
 
 
@@ -112,7 +126,7 @@ function parse_input(input)
 end
 
 
-# Keyboard pooling detector
+# Keyboard pooling input
 function monitorInput()
     # Put STDIN in 'raw mode'
     ccall(:jl_tty_set_mode, Int32, (Ptr{Cvoid}, Int32), stdin.handle, true) == 0 || throw("FATAL: Terminal unable to enter raw mode.")
@@ -128,13 +142,11 @@ function monitorInput()
     return inputBuffer
 end
 
-
 function clean_channel(data_channel)
     while isready(data_channel)
         take!(data_channel)
     end
 end
-
 
 function cpy_piece_to_board(board, tetromino)
     for i in 1:length(tetromino.type[:,1])
@@ -153,7 +165,6 @@ function adjust_cordinates(board, tetromino)
         tetromino.x = 11 - length(tetromino.type[1,:])
     end
 end
-
 
 function move_piece!(board, tetromino, move_to)
     if tetromino.y+(length(tetromino.type[:,1])) > 24
@@ -214,22 +225,23 @@ function move_piece!(board, tetromino, move_to)
     return false
 end
 
+function shift_1_down(board, row)
+    for r in row:-1:4
+        board[r,:] = board[r-1,:]
+    end
+end
+
 
 function cleaned_points(board)
     points = 0
+    row = 24
 
-    for row in 24:-1:4
+    while row > 4 && !all(x->x==0, board[row,:])
         if all(x->x!=0, board[row,:])
-            for i in row:-1:4
-                board[i,:] = board[i-1,:]
-                if all(x->x==0, board[row,:])
-                    break
-                end
-            end
+            shift_1_down(board, row)
             points += 1
-
-        elseif all(x->x==0, board[row,:])
-            break
+        else
+            row -= 1
         end
     end
 
@@ -240,8 +252,9 @@ end
 function loop(mode)
     board = zeros(Int, 24,10)
     pieces = [I, J, L, O, S, T]
-    last_pieces = []
 
+    last_piece = 1
+    next_piece = 2
 
     tetromino = nothing
 
@@ -257,7 +270,7 @@ function loop(mode)
     i=0
     score = 0
     while true
-        score += cleaned_points(board)
+
 
         i+=1
 
@@ -265,6 +278,20 @@ function loop(mode)
             key_event = lowercase(take!(data_channel))
 
             if 'q' == key_event return end
+
+            if 'f' == key_event
+                println("asuhdiuashd")
+                board[24,:] = zeros(Int, 10)
+                board[24,2] = 1
+                board[21,:] = ones(Int, 10)
+                board[23,:] = ones(Int, 10)
+                board[22,:] = ones(Int, 10)
+                board[21,:] = ones(Int, 10)
+                board[20,:] = ones(Int, 10)
+                board[19,:] = ones(Int, 10)
+                board[18,:] = ones(Int, 10)
+            end
+
             move_to = parse_input(key_event)
             println("$CRED -- $move_to -- $CEND")
         end
@@ -274,15 +301,23 @@ function loop(mode)
         # println(need_new_piece)
         # println(move_to)
 
+
+
         if need_new_piece
+            score += cleaned_points(board)
+
             if !is_a_valid_game(board)
                 break
             end
-            tetromino = Piece(pick_a_piece(pieces, last_pieces), rand(1:6), 1)
+            tetromino,last_piece,next_piece = pick_a_piece(pieces, last_piece, next_piece)
+            tetromino = Piece(tetromino, rand(1:6), 1)
+
             cpy_piece_to_board(board, tetromino)
             need_new_piece = false
         end
 
+        # println("Last: ", pieces[last_piece])
+        println("Next: ", pieces[next_piece])
 
         if move_to != :none
             need_new_piece = move_piece!(board, tetromino, move_to)
