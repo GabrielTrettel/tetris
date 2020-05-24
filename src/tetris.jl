@@ -5,17 +5,11 @@
 
 
 include("Styles.jl")
+include("TUI_like.jl")
+
 
 using LinearAlgebra
 
-const FILL_CHAR_V = "|"
-const FILL_CHAR_H_B = "‾"
-const FILL_CHAR_H_T = "_"
-
-const BLOCK_CHAR =  "██"
-const WHITE_BLOCK = " ⋅"
-
-const SEPARATOR_LINE = '|'
 
 
 const I = [1;
@@ -46,10 +40,6 @@ mutable struct Piece
 end
 
 
-#                 blank    I          J      L       O      S         T
-const COLORS = [:white, :white,  :blue, :red, :yellow, :green, :magenta]
-
-
 function game_begin(mode)
     if mode == 0
         println("$(CBLINK)Enter for begin...$CEND")
@@ -57,25 +47,6 @@ function game_begin(mode)
     end
 end
 
-
-
-function print_board(mode, board)
-    if mode == 1 return end
-
-    run(`clear`)
-    println(CBLACKBG, FILL_CHAR_H_T^(20+3))
-    for row in eachrow(board[4:end,:])
-        print(FILL_CHAR_V)
-
-        for col in row[1:end-1]
-            printstyled(if col == 0 WHITE_BLOCK else BLOCK_CHAR end; color=COLORS[col+1])
-        end
-
-        printstyled(if row[end] == 0 WHITE_BLOCK*" " else BLOCK_CHAR*" " end; color = COLORS[row[end]+1])
-        println(FILL_CHAR_V)
-    end
-    println("$(FILL_CHAR_H_B^(20+3))")
-end
 
 
 
@@ -120,6 +91,8 @@ function parse_input(input)
         return :right
     elseif ' ' == input
         return :rotate
+    elseif 'l' == input
+        return :lay
     end
 
     return :none
@@ -263,45 +236,19 @@ function loop(mode)
 
     data_channel = monitorInput()
 
-    print_board(mode, board)
-
     need_new_piece = true
-    # while is_a_valid_game(board)
     i=0
     score = 0
     while true
-
-
         i+=1
 
         if isready(data_channel)
             key_event = lowercase(take!(data_channel))
 
             if 'q' == key_event return end
-
-            if 'f' == key_event
-                println("asuhdiuashd")
-                board[24,:] = zeros(Int, 10)
-                board[24,2] = 1
-                board[21,:] = ones(Int, 10)
-                board[23,:] = ones(Int, 10)
-                board[22,:] = ones(Int, 10)
-                board[21,:] = ones(Int, 10)
-                board[20,:] = ones(Int, 10)
-                board[19,:] = ones(Int, 10)
-                board[18,:] = ones(Int, 10)
-            end
-
             move_to = parse_input(key_event)
             println("$CRED -- $move_to -- $CEND")
         end
-
-        println("Score: $score")
-        # println(i)
-        # println(need_new_piece)
-        # println(move_to)
-
-
 
         if need_new_piece
             score += cleaned_points(board)
@@ -316,9 +263,6 @@ function loop(mode)
             need_new_piece = false
         end
 
-        # println("Last: ", pieces[last_piece])
-        println("Next: ", pieces[next_piece])
-
         if move_to != :none
             need_new_piece = move_piece!(board, tetromino, move_to)
         end
@@ -330,9 +274,8 @@ function loop(mode)
 
         move_to = :none
         clean_channel(data_channel)
-        println(tetromino)
-        sleep(0.3) # FIXME
-        print_board(mode, board)
+        sleep(0.2) # FIXME
+        print_board(mode, board[4:end,:], pieces[next_piece], score)
 
     end
 end
