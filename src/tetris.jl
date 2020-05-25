@@ -40,7 +40,7 @@ mutable struct Piece
 end
 
 
-function game_begin(mode)
+function game_setup(mode)
     if mode == 0
         println("$(CBLINK)Enter for begin...$CEND")
         readline()
@@ -72,9 +72,10 @@ end
 function start_game()
     print("Game mode: 0 for humans, 1 for machines: ")
     # game_mode = parse(Int, readline())
+    println(ARGS)
     game_mode = 0
 
-    game_begin(game_mode)
+    game_setup(game_mode)
     loop(game_mode)
 end
 
@@ -138,6 +139,20 @@ function adjust_cordinates(board, tetromino)
     end
 end
 
+function fall_dist(board, tetromino)
+    for l in 4:24
+        for i in length(tetromino.type[:,1]):-1:1
+            for j in length(tetromino.type[1,:]):-1:1
+                # check if there is a collision
+                if l+i-1 > 24 || tetromino.type[i,j] != 0 && board[l+i-1, tetromino.x+j-1] != 0
+                    return l-1 - tetromino.y
+                end
+            end
+        end
+    end
+    return 0
+end
+
 function move_piece!(board, tetromino, move_to)
     if tetromino.y+(length(tetromino.type[:,1])) > 24
         return true
@@ -163,6 +178,8 @@ function move_piece!(board, tetromino, move_to)
         newx += 1
     elseif move_to == :down && tetromino.y < (25 - length(tetromino.type[:,1]))
         newy += 1
+    elseif move_to == :lay && tetromino.y < (25 - length(tetromino.type[:,1]))
+        newy += fall_dist(board, tetromino)
     elseif move_to == :rotate
         if ndims(tetromino.type) == 1
             tetromino.type = tetromino.type'
@@ -175,13 +192,17 @@ function move_piece!(board, tetromino, move_to)
         return false
     end
 
+
     # Check if it is possible
-    for i in 1:length(tetromino.type[:,1])
-        for j in 1:length(tetromino.type[1,:])
+    for i in length(tetromino.type[:,1]):-1:1
+        for j in length(tetromino.type[1,:]):-1:1
+            # check if there is a collision
             if tetromino.type[i,j] != 0 && board[newy+i-1, newx+j-1] != 0
+                # Collision in x-axis don't break the game but tetromino can't move sideways
                 if newx != tetromino.x
                     newx = tetromino.x
                 else
+                    # Collision in y-axis break the game
                     cpy_piece_to_board(board, tetromino)
                     return true
                 end
@@ -221,6 +242,7 @@ function cleaned_points(board)
 end
 
 
+
 function loop(mode)
     board = zeros(Int, 24,10)
     pieces = [I, J, L, O, S, T]
@@ -241,10 +263,9 @@ function loop(mode)
     level = 0
     record = 0
 
-    while true
+    while need_new_piece && !is_a_valid_game(board)
         if isready(data_channel)
             key_event = lowercase(take!(data_channel))
-
             if 'q' == key_event return end
             move_to = parse_input(key_event)
             println("$CRED -- $move_to -- $CEND")
@@ -253,9 +274,6 @@ function loop(mode)
         if need_new_piece
             score += cleaned_points(board)
 
-            if !is_a_valid_game(board)
-                break
-            end
             tetromino,last_piece,next_piece = pick_a_piece(pieces, last_piece, next_piece)
             tetromino = Piece(tetromino, rand(1:6), 1)
 
@@ -273,9 +291,9 @@ function loop(mode)
 
         move_to = :none
         clean_channel(data_channel)
-        sleep(0.5 / (1 + (0.1*level))) # FIXME
-        print_board(mode, board[4:end,:], pieces[next_piece], score, level, record)
+        sleep(0.4 / (1 + (0.1*level)))
 
+        print_board(mode, board[4:end,:], pieces[next_piece], score, level, record)
     end
 end
 

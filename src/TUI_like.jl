@@ -26,12 +26,12 @@ board_string = """
     |%|        |*|
     |%|        ‾‾‾‾‾‾‾‾‾‾‾
     |%|
-    |%|
-    |%|
-    |%|
-    |%|
-    |%|
-    |%|
+    |%|     CONTROLS:
+    |%|     left: a
+    |%|     down (1 block): s
+    |%|     right: d
+    |%|     rotate: space bar
+    |%|     down (all blocks): l
     |%|
     |%|
     ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
@@ -56,7 +56,10 @@ end
 
 
 function print_board(mode, board, next_tetromino=[], score="None", level="None", record="None")
-    if mode == 1 return end
+    if mode == 1
+        AI_bridge(board, next_tetromino, score, level, record)
+    end
+
     run(`clear`)
     board_line_counter = 1
     next_tetromino_line_counter = 1
@@ -83,4 +86,9 @@ function print_board(mode, board, next_tetromino=[], score="None", level="None",
         output_text *= line * '\n'
     end
     println(output_text)
+end
+
+
+function AI_bridge(board, next_tetromino, score, level, record)
+
 end
