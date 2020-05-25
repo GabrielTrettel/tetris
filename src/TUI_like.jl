@@ -20,13 +20,13 @@ board_string = """
             |%|     RECORD: @
             |%|
             |%|
-            |%|     PROXIMO TETROMINO:
-            |%|        ___________
-            |%|        |*|
-            |%|        |*|
-            |%|        |*|
-            |%|        |*|
-            |%|        ‾‾‾‾‾‾‾‾‾‾‾
+            |%|     NEXT TETROMINO:
+            |%|      ___________
+            |%|      |*|
+            |%|      |*|
+            |%|      |*|
+            |%|      |*|
+            |%|      ‾‾‾‾‾‾‾‾‾‾‾
             |%|
             |%|     CONTROLS:
             |%|     left: a
@@ -87,6 +87,7 @@ function print_board(mode, board, next_tetromino=[], score="None", level="None",
         line = replace(line, '@'=>record)
         output_text *= line * '\n'
     end
+    # write(stdout, output_text)
     println(output_text)
 end
 

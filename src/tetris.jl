@@ -37,12 +37,13 @@ mutable struct Piece
     type
     x
     y
+    is_alive
 end
 
 
 function game_setup(mode)
     if mode == 0
-        println("$(CBLINK)Enter for begin...$CEND")
+        println("Enter for begin...$CEND")
         readline()
     end
 end
@@ -51,13 +52,6 @@ end
 
 
 function pick_a_piece(pieces, lastpiece, nextpiece)
-    # if nextpiece == nothing
-    #     lastpiece = 1 #rand(1:length(pieces))
-    #     nextpiece = 2 #lastpiece
-    #
-    #     return [pieces[lastpiece], lastpiece, nextpiece]
-    # end
-
     lastpiece = nextpiece
     nextpiece = rand(0:length(pieces))
 
@@ -72,7 +66,6 @@ end
 function start_game()
     print("Game mode: 0 for humans, 1 for machines: ")
     # game_mode = parse(Int, readline())
-    println(ARGS)
     game_mode = 0
 
     game_setup(game_mode)
@@ -154,8 +147,11 @@ function fall_dist(board, tetromino)
 end
 
 function move_piece!(board, tetromino, move_to)
+    if move_to == :none return end
+    if !tetromino.is_alive return end
+
     if tetromino.y+(length(tetromino.type[:,1])) > 24
-        return true
+        return tetromino.is_alive = false
     end
 
     # Delete's the old piece positioning
@@ -189,7 +185,7 @@ function move_piece!(board, tetromino, move_to)
         adjust_cordinates(board, tetromino)
 
         cpy_piece_to_board(board, tetromino)
-        return false
+        return
     end
 
 
@@ -204,7 +200,7 @@ function move_piece!(board, tetromino, move_to)
                 else
                     # Collision in y-axis break the game
                     cpy_piece_to_board(board, tetromino)
-                    return true
+                    return tetromino.is_alive = false
                 end
             end
         end
@@ -215,7 +211,7 @@ function move_piece!(board, tetromino, move_to)
 
     # Persists the moove
     cpy_piece_to_board(board, tetromino)
-    return false
+    return
 end
 
 function shift_1_down(board, row)
@@ -242,6 +238,21 @@ function cleaned_points(board)
 end
 
 
+function gravity(data_channel, gs)
+    @async begin
+        while true
+            put!(data_channel, :down)
+            sleep(0.4 / (1 + (0.1*gs.level)))
+        end
+    end
+end
+
+
+mutable struct game_status
+    score
+    level
+    record
+end
 
 function loop(mode)
     board = zeros(Int, 24,10)
@@ -252,48 +263,50 @@ function loop(mode)
 
     tetromino = nothing
 
-    move_to = :none
+    move_to = :down
+    down_move = :none
     quit_game = :continue
 
     data_channel = monitorInput()
+    down_channel = Channel(1)
 
     need_new_piece = true
 
-    score = 0
-    level = 0
-    record = 0
+    gs = game_status(0, 0, 0)
+    t = gravity(down_channel, gs)
 
     while true
+        if tetromino == nothing || !tetromino.is_alive
+            clean_channel(data_channel)
+            gs.score += cleaned_points(board)
+            if (gs.score > 0 && gs.score % 10 == 0) gs.level += 1 end
+
+            if !is_a_valid_game(board) return end
+            tetromino,last_piece,next_piece = pick_a_piece(pieces, last_piece, next_piece)
+            tetromino = Piece(tetromino, rand(1:6), 1, true)
+            cpy_piece_to_board(board, tetromino)
+        end
+
         if isready(data_channel)
             key_event = lowercase(take!(data_channel))
             if 'q' == key_event return end
+            if 'g' == key_event gs.level += 20 end
             move_to = parse_input(key_event)
-            println("$CRED -- $move_to -- $CEND")
+            move_piece!(board, tetromino, move_to)
         end
 
-        if need_new_piece
-            score += cleaned_points(board)
-            if !is_a_valid_game(board) return end
-            tetromino,last_piece,next_piece = pick_a_piece(pieces, last_piece, next_piece)
-            tetromino = Piece(tetromino, rand(1:6), 1)
-
-            cpy_piece_to_board(board, tetromino)
-            need_new_piece = false
+        if isready(down_channel)
+            down_move = take!(down_channel)
+            move_piece!(board, tetromino, down_move)
         end
 
-        if move_to != :none
-            need_new_piece = move_piece!(board, tetromino, move_to)
+        if move_to != :none || down_move != :none
+            print_board(mode, board[4:end,:], pieces[next_piece], gs.score, gs.level, gs.record)
+            move_to = :none
+            down_move = :none
         end
 
-        if !need_new_piece
-            need_new_piece = move_piece!(board, tetromino, :down)
-        end
-
-        move_to = :none
-        clean_channel(data_channel)
-        sleep(0.4 / (1 + (0.1*level)))
-
-        print_board(mode, board[4:end,:], pieces[next_piece], score, level, record)
+        sleep(0.00001)
     end
 end
 
