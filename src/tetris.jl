@@ -263,7 +263,7 @@ function loop(mode)
     level = 0
     record = 0
 
-    while need_new_piece && !is_a_valid_game(board)
+    while true
         if isready(data_channel)
             key_event = lowercase(take!(data_channel))
             if 'q' == key_event return end
@@ -273,7 +273,7 @@ function loop(mode)
 
         if need_new_piece
             score += cleaned_points(board)
-
+            if !is_a_valid_game(board) return end
             tetromino,last_piece,next_piece = pick_a_piece(pieces, last_piece, next_piece)
             tetromino = Piece(tetromino, rand(1:6), 1)
 
