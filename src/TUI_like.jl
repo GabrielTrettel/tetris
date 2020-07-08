@@ -42,8 +42,8 @@ board_string = """
 const BLOCK_CHAR =  "██"
 const WHITE_BLOCK = " ⋅"
 
-#                 blank    I          J      L       O      S         T
-const COLORS = [CWHITE, CWHITE, CBLUE, CRED, CYELLOW, CGREEN, CVIOLET]
+#                 blank    I     J      L       O      S         T       z
+const COLORS = [CWHITE, CWHITE, CBLUE, CRED, CYELLOW, CGREEN, CVIOLET, CBEIGE]
 
 function format_board_line(board_line)
     line = CBLACKBG * if length(board_line)<=4  WHITE_BLOCK ^ (4-length(board_line)) else "" end
