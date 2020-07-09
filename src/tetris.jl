@@ -33,6 +33,11 @@ const Z = [7 7 0;
 const tetrominoes = [I, J, L, O, S, T, Z]
 const Board = Matrix{Int64}
 
+
+
+who_am_I(a::Array) = Dict(I=>:I, J=>:J, L=>:L, O=>:O, S=>:S, T=>:T, Z=>:Z)[a]
+
+
 calc_iterable(x_len::Integer, y_len::Integer) = Tuple.(Iterators.product(1:y_len, 1:x_len))
 
 mutable struct Tetromino
@@ -43,17 +48,19 @@ mutable struct Tetromino
     x_len    :: Integer # Column
     y_len    :: Integer # Row
     iter     :: Array
+    name     :: Symbol
     function Tetromino(t::Array)
-        type = t
         x = rand(1:6)
         y = 1
 
-        x_len = length(type[1,:]) # Column
-        y_len = length(type[:,1]) # Row
+        x_len = length(t[1,:]) # Column
+        y_len = length(t[:,1]) # Row
 
         iter = calc_iterable(x_len, y_len)
 
-        new(type, x, y, true, x_len, y_len, iter)
+        name = who_am_I(t)
+
+        new(t, x, y, true, x_len, y_len, iter, name)
     end
 
     function Tetromino(type, x, y, is_alive, x_len, y_len, iter)
@@ -70,14 +77,19 @@ mutable struct GameStatus
 end
 
 function rotate_tetromino!(t::Tetromino)
-
-
     t.type = rotr90(t.type)
     aux = t.x_len
     t.x_len = t.y_len
     t.y_len = aux
-    # t.x += 1
     t.iter = calc_iterable(t.x_len, t.y_len)
+    if t.name == :I
+        x_offset = t.x_len == 1 ? 1 : -1
+        y_offset = t.x_len == 1 ? -2 : 2
+
+        t.y += t.y+y_offset < 0 ? 0 : y_offset
+        t.x += t.x+x_offset < 0 ? 0 : x_offset
+    end
+
 end
 
 function game_setup(mode::Integer)
@@ -96,6 +108,7 @@ function pick_a_piece(lastpiece::Integer, nextpiece::Integer)
         nextpiece = rand(0:length(tetrominoes))
     end
 
+    # lastpiece = 1
     curr_t = Tetromino(tetrominoes[lastpiece])
 
     return curr_t, lastpiece, nextpiece
@@ -202,6 +215,9 @@ function rotate!(board::Board, tetromino::Tetromino)
     if (new_t.x + new_t.x_len) >= 10
         new_t.x = 11 - new_t.x_len
     end
+    if (new_t.y + new_t.y_len) >= 24
+        new_t.y = 25 - new_t.y_len
+    end
 
     collides(board, new_t) && return
     copy(tetromino, new_t)
@@ -238,7 +254,7 @@ function move_tetromino!(board::Board, tetromino::Tetromino, move_to::Symbol)
     end
 
     # Delete's the old Tetromino positioning
-    remove_tetromino_from_board(board, tetromino)
+    remove_tetromino_from_board(board::Board, tetromino::Tetromino)
 
     newx = tetromino.x
     newy = tetromino.y
@@ -270,7 +286,8 @@ function move_tetromino!(board::Board, tetromino::Tetromino, move_to::Symbol)
             else
                 # Collision in y-axis break the game
                 cpy_piece_to_board(board, tetromino)
-                return tetromino.is_alive = false
+                tetromino.is_alive = false
+                return
             end
         end
     end
