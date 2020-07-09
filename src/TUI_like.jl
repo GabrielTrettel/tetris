@@ -57,11 +57,7 @@ function format_board_line(board_line)
 end
 
 
-function print_board(mode, board, next_tetromino=[], score="None", level="None", record="None")
-    if mode == 1
-        AI_bridge(board, next_tetromino, score, level, record)
-    end
-
+function print_board(board, next_tetromino=[], score="None", level="None", record="None")
     run(`clear`)
     board_line_counter = 1
     next_tetromino_line_counter = 1
