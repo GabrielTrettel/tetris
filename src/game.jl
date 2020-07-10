@@ -5,20 +5,19 @@
 
 ===============================================#
 
-module TetrisGame
+module Tetris
 
 export start_game,
        Tetromino,
        Board,
-       rotate!,
+       GameStatus,
        move_tetromino!,
        remove_tetromino_from_board,
        collides,
        cpy_piece_to_board,
+       rotate!,
        fall_dist
 
-include("Styles.jl")
-include("TUI_like.jl")
 
 const I = ones(Int64, 4, 1)|>rotr90
 
@@ -76,6 +75,10 @@ mutable struct Tetromino
     function Tetromino(type, x, y, is_alive, x_len, y_len, iter)
         new(type, x, y, is_alive, x_len, y_len, iter)
     end
+
+    function Tetromino(t::Integer)
+        Tetromino(tetrominoes[t])
+    end
 end
 
 
@@ -84,6 +87,16 @@ mutable struct GameStatus
     score  :: Real
     level  :: Real
     record :: Real
+    board  :: Union{Board, Nothing}
+    curr_tetromino :: Union{Tetromino, Nothing}
+    next_tetromino :: Union{Tetromino, Nothing}
+    status ::Bool
+    function GameStatus(s::Real, l::Real, r::Real)
+        new(s, l, r, nothing, nothing, nothing, true)
+    end
+    function GameStatus(s::Real, l::Real, r::Real, b::Board, ct::Tetromino, nt::Tetromino)
+        new(s,l,r,b,ct,nt,true)
+    end
 end
 
 function rotate_tetromino!(t::Tetromino)
@@ -149,9 +162,9 @@ function parse_input(input::Char)
 end
 
 
-function clean_channel(data_channel::Channel)
-    while isready(data_channel)
-        take!(data_channel)
+function clean_channel(input_channel::Channel)
+    while isready(input_channel)
+        take!(input_channel)
     end
 end
 
@@ -297,17 +310,23 @@ function cleaned_points(b::Board)
 end
 
 
-function gravity(data_channel::Channel, gs::GameStatus)
+function gravity(input_channel::Channel, gs::GameStatus)
     @async begin
         while true
-            put!(data_channel, :down)
+            put!(input_channel, :down)
             sleep(0.4 / (1 + (0.1*gs.level)))
         end
     end
 end
 
+function start_game(input_channel::Channel)
+    output_channel = Channel(1000)
+    @async loop(input_channel, output_channel)
+    return output_channel
+end
 
-function start_game(data_channel::Channel)
+function loop(input_channel::Channel, output_channel::Channel)
+
     board = zeros(Int, 24,10)
     last_piece = 1
     next_piece = 2
@@ -316,7 +335,6 @@ function start_game(data_channel::Channel)
     down_move = :none
     quit_game = :continue
 
-    # data_channel = monitorInput()
     down_channel = Channel(1)
     need_new_piece = true
 
@@ -325,7 +343,7 @@ function start_game(data_channel::Channel)
 
     while true
         if tetromino == nothing || !tetromino.is_alive
-            clean_channel(data_channel)
+            clean_channel(input_channel)
             gs.score += cleaned_points(board)
             if (gs.score > 0 && gs.score % 10 == 0) gs.level += 1 end
 
@@ -334,24 +352,29 @@ function start_game(data_channel::Channel)
             cpy_piece_to_board(board, tetromino)
         end
 
-        if isready(data_channel)
-            key_event = take!(data_channel)
+        if isready(input_channel)
+            key_event = take!(input_channel)
             if 'g' == key_event gs.level += 20 end
             move_to = parse_input(key_event)
             move_tetromino!(board, tetromino, move_to)
         end
-
         if isready(down_channel)
             down_move = take!(down_channel)
             move_tetromino!(board, tetromino, down_move)
         end
 
         if move_to != :none || down_move != :none
-            print_board(board[4:end,:], tetrominoes[next_piece], gs.score, gs.level, gs.record)
+            gs.board = board[4:end,:]
+            gs.curr_tetromino = tetromino
+            gs.next_tetromino = Tetromino(next_piece)
+            put!(output_channel, gs)
+
             move_to = :none
             down_move = :none
         end
-        sleep(0.00001)
+        sleep(0.0001)
     end
+    gs.status = false
+    put!(output_channel, gs)
 end
 end #module

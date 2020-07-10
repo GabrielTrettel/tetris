@@ -1,5 +1,8 @@
 include("Styles.jl")
 
+include("game.jl")
+import .Tetris
+
 logo = raw"""
 
 
@@ -56,8 +59,16 @@ function format_board_line(board_line)
     return line * CEND
 end
 
+function print_board(args)
+    body
+end
+
+print_board(gs::Tetris.GameStatus) = print_board(gs.board, gs.next_tetromino, gs.score,gs.level,gs.record)
+
 
 function print_board(board, next_tetromino=[], score="None", level="None", record="None")
+    next_tetromino = next_tetromino.type
+
     run(`clear`)
     board_line_counter = 1
     next_tetromino_line_counter = 1
@@ -85,9 +96,4 @@ function print_board(board, next_tetromino=[], score="None", level="None", recor
     end
     # write(stdout, output_text)
     println(output_text)
-end
-
-
-function AI_bridge(board, next_tetromino, score, level, record)
-
 end
