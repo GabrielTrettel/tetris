@@ -35,9 +35,9 @@ board_string = """
             |%|     left: a
             |%|     down (1 block): s
             |%|     right: d
-            |%|     rotate: space bar
+            |%|     rotate: w
             |%|     down (all blocks): l
-            |%|
+            |%|     arrow keys also work
             |%|
             ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
