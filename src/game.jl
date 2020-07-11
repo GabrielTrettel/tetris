@@ -142,19 +142,19 @@ function is_a_valid_game(board::Board)
 end
 
 
-function parse_input(input::Char)
+function parse_input(input::String)
     lwc_input = lowercase(input)
-    if 'a' == lwc_input    || 'Ϩ' == input
+    if "a" == lwc_input    || "Ϩ" == input
         return :left
-    elseif 's' == lwc_input || 'ϫ' == input
+    elseif "s" == lwc_input || "ϫ" == input
         return :down
-    elseif 'd' == lwc_input || 'ϩ' == input
+    elseif "d" == lwc_input || "ϩ" == input
         return :right
-    elseif ' ' == lwc_input || 'Ϫ' == input
+    elseif "w" == lwc_input || "Ϫ" == input
         return :rotate
-    elseif 'l' == lwc_input
+    elseif "l" == lwc_input
         return :lay
-    elseif 'q' == lwc_input
+    elseif "q" == lwc_input
         exit()
     end
 
@@ -354,8 +354,11 @@ function loop(input_channel::Channel, output_channel::Channel)
 
         if isready(input_channel)
             key_event = take!(input_channel)
-            if 'g' == key_event gs.level += 20 end
+
+
+            if "q" == key_event gs.level += 20 end
             move_to = parse_input(key_event)
+
             move_tetromino!(board, tetromino, move_to)
         end
         if isready(down_channel)

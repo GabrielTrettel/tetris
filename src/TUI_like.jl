@@ -95,5 +95,6 @@ function print_board(board, next_tetromino=[], score="None", level="None", recor
         output_text *= line * '\n'
     end
     # write(stdout, output_text)
+    # println("PRINT BOARD")
     println(output_text)
 end
